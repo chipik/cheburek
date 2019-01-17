@@ -65,11 +65,11 @@ class BurpExtender(IBurpExtender, IScannerCheck):
     def _do_online_check(self, email):
         headers = {'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:59.0) Gecko/20100101 Firefox/59.0'}
         connect = httplib.HTTPSConnection(base_url)
-        connect.request('GET', '/api/v2/unifiedsearch/{}'.format(email), headers = headers)
+        connect.request('GET', '/api/v2/breachedaccount/{}'.format(email), headers = headers)
         response = connect.getresponse()
         if response.status == 200:
             html = response.read()
-            self._stdout.println('OK!')
+            self._stdout.println(' Got {}. Status = {}'.format(email, response.status))
             jresp = json.loads(html)
             rez_info = ''
             for br in jresp['Breaches']:
@@ -79,8 +79,10 @@ class BurpExtender(IBurpExtender, IScannerCheck):
                 rez_info = '{}<br>{} ({})<br><ul>{}</ul>'.format(rez_info, br['Title'],br['BreachDate'],rez_li)
             return rez_info
         if response.status == 404:
-            self._stdout.println('Nothing :(')
-            return 0
+            self._stdout.println('Nothing :( Status = {}'.format(response.status))
+        if response.status == 403:
+            self._stdout.println('API request was blocked. Status = {}'.format(response.status))
+        return 0
 
 
     # helper that do a request to https://haveibeenpwned.com/
