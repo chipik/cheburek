@@ -1,15 +1,8 @@
 from javax.swing import BoxLayout, JPanel, JTextField, JLabel, JCheckBox, Box, JOptionPane, JButton
-from java.awt import Dimension
-
-
-
+from burp import IBurpExtender, IScannerCheck, IScanIssue, ITab
 from java.io import PrintWriter
-from burp import IBurpExtender
-from burp import IScannerCheck
-from burp import IScanIssue
+from java.awt import Dimension
 from array import array
-from burp import ITab
-from burp import IBurpExtenderCallbacks
 import subprocess
 import httplib
 import shlex
@@ -17,9 +10,7 @@ import json
 import re
 
 
-
 class BurpExtender(IBurpExtender, IScannerCheck, ITab):
-
     base_url = "haveibeenpwned.com"
     cmd = "ssh dl-adm query_email ~emailhere~"
 
@@ -118,17 +109,16 @@ class BurpExtender(IBurpExtender, IScannerCheck, ITab):
 
     # END ITAB
 
-    def _get_matches(self, response): 
+    def _get_matches(self, response):
         str_response = self._helpers.bytesToString(response)
         # best regex winner :)
         regex = re.compile(("([a-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+\/=?^_`"
-                    "{|}~-]+)*(@|\sat\s)(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(\.|"
-                    "\sdot\s))+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)"))
+                            "{|}~-]+)*(@|\sat\s)(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(\.|"
+                            "\sdot\s))+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)"))
         emails = re.findall(regex, str_response)
         for email in emails:
             self._stdout.println('Found {}'.format(email[0]))
         return emails
-
 
     def _get_pointer(self, response, match):
         matches = []
@@ -145,9 +135,10 @@ class BurpExtender(IBurpExtender, IScannerCheck, ITab):
 
     # helper that do a request to https://haveibeenpwned.com/
     def _do_online_check(self, email):
-        headers = {'User-Agent':'Chebuzilla/5.0 (Chebuntosh; Intel Cheb-OS-Rek 13.37; rv:59.0) ChebuGeko/20100101 Cheburefox/1337.0'}
+        headers = {
+            'User-Agent': 'Chebuzilla/5.0 (Chebuntosh; Intel Cheb-OS-Rek 13.37; rv:59.0) ChebuGeko/20100101 Cheburefox/1337.0'}
         connect = httplib.HTTPSConnection(self.base_url)
-        connect.request('GET', '/api/v2/breachedaccount/{}'.format(email), headers = headers)
+        connect.request('GET', '/api/v2/breachedaccount/{}'.format(email), headers=headers)
         response = connect.getresponse()
         if response.status == 200:
             html = response.read()
@@ -157,8 +148,8 @@ class BurpExtender(IBurpExtender, IScannerCheck, ITab):
             for br in jresp['Breaches']:
                 rez_li = ''
                 for li in br['DataClasses']:
-                    rez_li = '{}<li>{}</li>'.format(rez_li,li)
-                rez_info = '{}<br>{} ({})<br><ul>{}</ul>'.format(rez_info, br['Title'],br['BreachDate'],rez_li)
+                    rez_li = '{}<li>{}</li>'.format(rez_li, li)
+                rez_info = '{}<br>{} ({})<br><ul>{}</ul>'.format(rez_info, br['Title'], br['BreachDate'], rez_li)
             return rez_info
         if response.status == 404:
             self._stdout.println('Nothing :( Status = {}'.format(response.status))
@@ -174,7 +165,7 @@ class BurpExtender(IBurpExtender, IScannerCheck, ITab):
             self._stdout.println("Exec:{}".format(cmd))
             returned_output = subprocess.check_output(shlex.split(cmd))
             self._stdout.println("Result: {}".format(returned_output))
-            returned_output = "Breached passwords:<br><br>{}".format(returned_output).replace('\n','<br>')
+            returned_output = "Breached passwords:<br><br>{}".format(returned_output).replace('\n', '<br>')
         except subprocess.CalledProcessError:
             self._stdout.println("Nothing found locally for {}".format(email))
             returned_output = ''
@@ -191,12 +182,13 @@ class BurpExtender(IBurpExtender, IScannerCheck, ITab):
             issue = self._reportIssue(email, info + info2)
         return issue
 
-
     def _reportIssue(self, email, info):
         issue = CustomScanIssue(
             self._baseRequestResponse.getHttpService(),
             self._helpers.analyzeRequest(self._baseRequestResponse).getUrl(),
-            [self._callbacks.applyMarkers(self._baseRequestResponse, None, self._get_pointer(self._baseRequestResponse.getResponse(), bytearray(email, 'utf8')))],
+            [self._callbacks.applyMarkers(self._baseRequestResponse, None,
+                                          self._get_pointer(self._baseRequestResponse.getResponse(),
+                                                            bytearray(email, 'utf8')))],
             "Potentially compromised account",
             "Email address <b>{}</b> potentially has been compromised in a data breach<br><br>{}".format(email, info),
             "Information")
@@ -220,7 +212,8 @@ class BurpExtender(IBurpExtender, IScannerCheck, ITab):
             return -1
         return 0
 
-class CustomScanIssue (IScanIssue):
+
+class CustomScanIssue(IScanIssue):
     def __init__(self, httpService, url, httpMessages, name, detail, severity):
         self._httpService = httpService
         self._url = url
@@ -261,4 +254,3 @@ class CustomScanIssue (IScanIssue):
 
     def getHttpService(self):
         return self._httpService
-
