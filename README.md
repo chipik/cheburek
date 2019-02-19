@@ -4,7 +4,7 @@
 
 ### What is this?
 
-*Cheburek* is [Burp](https://portswigger.net/) extension that allows to detect if email address has been compromised in a data breach.
+*Cheburek* is a [Burp](https://portswigger.net/) extension that allows to detect if an email address has been compromised in a data breach.
 
 
 ![Demo](img/demo.png) 
